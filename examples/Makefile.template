@@ -1,0 +1,13 @@
+all:	lex yacc compile
+
+lex:	{LEX_FILE}
+	lex {LEX_FILE}
+
+yacc:	{YACC_FILE}
+	yacc -d {YACC_FILE}
+
+compile: y.tab.c lex.yy.c
+	gcc -o {EXEC_NAME} lex.yy.c y.tab.c -ly -lfl
+
+clean:
+	rm -rf y.tab.c y.tab.h lex.yy.c {EXEC_NAME}
