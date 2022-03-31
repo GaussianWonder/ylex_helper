@@ -10,6 +10,14 @@ pub enum Template {
   Conan,
 }
 
+fn template_file_name(template: &Template) -> String {
+  match template {
+    Template::Make => "Makefile.template",
+    Template::CMake => "CMakeLists.Template",
+    Template::Conan => "conanfile.Template",
+  }.to_string()
+}
+
 #[derive(Debug)]
 pub struct RunOptions {
   pub input: String,
@@ -28,11 +36,13 @@ pub struct Config {
 
   pub scan_directory: PathBuf,
   pub output_directory: PathBuf,
+  pub resource_directory: PathBuf,
 
   pub supress_run: bool,
   pub run_options: RunOptions,
 
   pub build_template: Template,
+  pub template_file_path: PathBuf,
 }
 
 static AUTHOR: &str = "Virghileanu Teodor <@GaussianWonder>";
@@ -52,15 +62,15 @@ fn get_raw() -> ArgMatches {
       .value_name("SCAN_DIRECTORY")
       .help("Path to scan directory to start looking for a resource")
       .takes_value(true)
-      .default_value("./resources")
+      .default_value("resources")
       .required(false))
     .arg(Arg::new("output")
       .short('o')
       .long("output")
       .value_name("OUPUT_DIRECTORY")
-      .help("Path to the output folder of the generated files")
+      .help("Path to the output folder of the generated files relative to the resource directory")
       .takes_value(true)
-      .default_value("./build")
+      .default_value("build")
       .required(false))
     .arg(Arg::new("build")
       .short('b')
@@ -117,10 +127,13 @@ pub fn get() -> Config {
     args.value_of("scan_directory").unwrap().to_string()
   );
 
+
   assure_directory_exists(&scan_directory);
 
-  let yacc_path = PathBuf::from(scan_directory.join(&yacc_file));
-  let lex_path = PathBuf::from(scan_directory.join(&lex_file));
+  let resource_directory = scan_directory.join(&resource_name);
+
+  let yacc_path = PathBuf::from(resource_directory.join(&yacc_file));
+  let lex_path = PathBuf::from(resource_directory.join(&lex_file));
 
   match (yacc_path.exists(), lex_path.exists()) {
     (true, true) => {},
@@ -129,7 +142,7 @@ pub fn get() -> Config {
     },
   }
 
-  let output_directory: PathBuf = scan_directory.join(
+  let output_directory: PathBuf = resource_directory.join(
     args.value_of("output").unwrap().to_string()
   );
 
@@ -153,7 +166,7 @@ pub fn get() -> Config {
 
   let run_options = if let Some(run_args) = args.subcommand_matches("run") {
     let input = run_args.value_of("file").unwrap();
-    let input_path = scan_directory.join(input);
+    let input_path = resource_directory.join(input);
 
     RunOptions {
       input: String::from(input),
@@ -162,7 +175,7 @@ pub fn get() -> Config {
   } else {
     RunOptions {
       input: "input.txt".to_string(),
-      input_path: scan_directory.join("input.txt"),
+      input_path: resource_directory.join("input.txt"),
     }
   };
 
@@ -179,6 +192,19 @@ pub fn get() -> Config {
     }
   }
 
+  let template_name = template_file_name(&build_template);
+  let resource_template = resource_directory.join(&template_name);
+  let template_file_path = if resource_template.exists() {
+    resource_template.clone()
+  } else {
+    let global_template = PathBuf::from(&template_name);
+    if global_template.exists() {
+      global_template
+    } else {
+      panic!("No template found matching {} in resource directory or executable path", template_name);
+    }
+  };
+
   Config {
     resource_name,
 
@@ -190,10 +216,12 @@ pub fn get() -> Config {
 
     scan_directory,
     output_directory,
+    resource_directory,
 
     supress_run,
     run_options,
 
     build_template,
+    template_file_path,
   }
 }
