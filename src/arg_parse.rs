@@ -46,6 +46,14 @@ pub struct Config {
 }
 
 static AUTHOR: &str = "Virghileanu Teodor <@GaussianWonder>";
+static GITIGNORE: &str = r###"
+lex.yy.c
+y.tab.c
+y.tab.h
+run.sh
+build/*
+{EXEC_NAME}
+"###;
 
 fn get_raw() -> ArgMatches {
   Command::new("generator")
@@ -116,7 +124,7 @@ fn assure_directory_exists(path: &PathBuf) {
   }
 }
 
-pub fn get() -> Config {
+pub fn get() -> Result<Config, Box<dyn std::error::Error>> {
   let args = get_raw();
 
   let resource_name: String = args.value_of("RESOURCE").unwrap().to_string();
@@ -126,7 +134,6 @@ pub fn get() -> Config {
   let scan_directory: PathBuf = PathBuf::from(
     args.value_of("scan_directory").unwrap().to_string()
   );
-
 
   assure_directory_exists(&scan_directory);
 
@@ -205,7 +212,17 @@ pub fn get() -> Config {
     }
   };
 
-  Config {
+  let mut gitignore_file = File::create(
+    PathBuf::from(&resource_directory)
+      .join(".gitignore")
+  )?;
+  gitignore_file.write(
+    GITIGNORE
+      .replace("{EXEC_NAME}", &resource_name)
+      .as_bytes()
+  )?;
+
+  Ok(Config {
     resource_name,
 
     yacc_file,
@@ -223,5 +240,5 @@ pub fn get() -> Config {
 
     build_template,
     template_file_path,
-  }
+  })
 }
