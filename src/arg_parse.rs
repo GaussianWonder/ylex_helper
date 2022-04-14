@@ -10,6 +10,8 @@ pub enum Template {
   Conan,
 }
 
+static RUN_TEMPLATE_NAME: &str = "run.template";
+
 fn template_file_name(template: &Template) -> String {
   match template {
     Template::Make => "Makefile.template",
@@ -22,6 +24,8 @@ fn template_file_name(template: &Template) -> String {
 pub struct RunOptions {
   pub input: String,
   pub input_path: PathBuf,
+
+  pub script_path: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -111,7 +115,7 @@ fn get_raw() -> ArgMatches {
     .get_matches()
 }
 
-fn assure_directory_exists(path: &PathBuf) {
+fn assert_directory_exists(path: &PathBuf) {
   match create_dir_all(&path) {
     Ok(_) => {},
     Err(e) => {
@@ -135,9 +139,17 @@ pub fn get() -> Result<Config, Box<dyn std::error::Error>> {
     args.value_of("scan_directory").unwrap().to_string()
   );
 
-  assure_directory_exists(&scan_directory);
+  assert_directory_exists(&scan_directory);
 
   let resource_directory = scan_directory.join(&resource_name);
+
+  let global_run_template = scan_directory.join(RUN_TEMPLATE_NAME);
+  let local_run_template = resource_directory.join(RUN_TEMPLATE_NAME);
+  let run_script_template = match (global_run_template.exists(), local_run_template.exists()) {
+    (_, true) => Some(local_run_template),
+    (true, false) => Some(global_run_template),
+    _ => None,
+  };
 
   let yacc_path = PathBuf::from(resource_directory.join(&yacc_file));
   let lex_path = PathBuf::from(resource_directory.join(&lex_file));
@@ -153,7 +165,7 @@ pub fn get() -> Result<Config, Box<dyn std::error::Error>> {
     args.value_of("output").unwrap().to_string()
   );
 
-  assure_directory_exists(&output_directory);
+  assert_directory_exists(&output_directory);
 
   let supress_run: bool = args.is_present("build");
 
@@ -178,11 +190,13 @@ pub fn get() -> Result<Config, Box<dyn std::error::Error>> {
     RunOptions {
       input: String::from(input),
       input_path,
+      script_path: run_script_template,
     }
   } else {
     RunOptions {
       input: "input.txt".to_string(),
       input_path: resource_directory.join("input.txt"),
+      script_path: run_script_template,
     }
   };
 

@@ -7,14 +7,18 @@ use std::io::{BufReader, BufRead, Write};
 
 static MAKE_RUN: &str = r###"#!/bin/bash
 make
-cat {INPUT_NAME} | ./{EXEC_NAME}
+cat {INPUT_NAME} | ./{EXEC_NAME} {INPUT_NAME}
 "###;
 
-fn run_script_content(template: &Template) -> &str {
-    match template {
-        Template::Make => MAKE_RUN,
-        _ => "",
-    }
+fn run_script_content(config: &Config) -> String {
+  match config.build_template {
+      Template::Make => config.run_options.script_path
+          .as_ref()
+          .and_then(|path| read_to_string(path).ok())
+          .or_else(|| Some(MAKE_RUN.to_string()))
+          .expect("No script template to build from"),
+      _ => "".to_string(),
+  }
 }
 
 fn resolved_template_name(template: &Template) -> String {
@@ -50,7 +54,7 @@ pub fn create_run_script(config: &Config) -> Result<(), Box<dyn Error>> {
       .join("run.sh")
   )?;
   file.write(
-    run_script_content(&config.build_template)
+    run_script_content(&config)
       .replace("{EXEC_NAME}", &config.resource_name)
       .replace("{INPUT_NAME}", &config.run_options.input)
       .as_bytes()
