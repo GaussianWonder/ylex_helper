@@ -156,7 +156,7 @@ pub fn get() -> Result<Config, Box<dyn std::error::Error>> {
 
   match (yacc_path.exists(), lex_path.exists()) {
     (true, true) => {},
-    (_, _) => {
+    _ => {
       panic!("Incomplete resource provided!");
     },
   }

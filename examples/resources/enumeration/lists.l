@@ -1,8 +1,16 @@
 %{
+#include <stdlib.h>
+#include <stdio.h>
 #include "tokens.h"
+
+void yyerror(char *);
 %}
 
 %%
+
+take { return TAKE; }
+\+\+ { return CONCAT; }
+drop { return DROP; }
 
 [A-Z]	{
 		yylval.ival = *yytext - 'A';
@@ -15,7 +23,7 @@
 	}
 
 [0-9]+	{
-		yylval.ival = strtol(yytext, (char **)NULL, *yytext=='0' ? 8:10);
+		yylval.ival = strtol(yytext, (char **)NULL, *yytext == '0' ? 8 : 10);
 		return INTEGER;
 	}
 
@@ -24,8 +32,14 @@
 		return INTEGER;
 	}
 
-[-()=+/*\n;]	return *yytext;
+[-()=+/*\n;,]	return *yytext;
 
 [ \t]+	        ;
 
 .		yyerror("Unknown character");
+
+%%
+
+int yywrap(void) {
+	return 1;
+}

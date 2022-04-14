@@ -1,6 +1,6 @@
 # Project definition
 cmake_minimum_required(VERSION 3.21)
-project({EXEC_NAME})
+project(lists)
 
 find_program(LEX_EXE flex)
 if(LEX_EXE STREQUAL "LEX_EXE-NOTFOUND")
@@ -20,7 +20,7 @@ IF(BISON_FOUND)
     COMMAND ${BISON_EXECUTABLE}
             --defines=${CMAKE_SOURCE_DIR}/tokens.h
             --output=${BisonOutput}
-            ${CMAKE_SOURCE_DIR}/{YACC_FILE}
+            ${CMAKE_SOURCE_DIR}/lists.y
     COMMENT "Generating parser.cpp"
   )
 ENDIF()
@@ -32,7 +32,7 @@ IF(FLEX_FOUND)
     OUTPUT ${FlexOutput}
     COMMAND ${FLEX_EXECUTABLE}
             --outfile=${FlexOutput}
-            ${CMAKE_SOURCE_DIR}/{LEX_FILE}
+            ${CMAKE_SOURCE_DIR}/lists.l
     COMMENT "Generating scanner.cpp"
   )
 ENDIF()

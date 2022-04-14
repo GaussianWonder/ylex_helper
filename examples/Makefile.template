@@ -1,13 +1,13 @@
-all:	lex yacc compile
+all:	flex bison compile
 
-lex:	{LEX_FILE}
-	lex {LEX_FILE}
+flex:	{LEX_FILE}
+	flex --outfile=scanner.c {LEX_FILE}
 
-yacc:	{YACC_FILE}
-	yacc -d {YACC_FILE}
+bison:	{YACC_FILE}
+	bison --defines=tokens.h --output=parser.c {YACC_FILE}
 
-compile: y.tab.c lex.yy.c
-	gcc -o {EXEC_NAME} lex.yy.c y.tab.c -ly -lfl
+compile: scanner.c parser.c
+	gcc -o {EXEC_NAME} scanner.c parser.c -ly -lfl
 
 clean:
-	rm -rf y.tab.c y.tab.h lex.yy.c {EXEC_NAME}
+	rm -rf scanner.c parser.c tokens.h {EXEC_NAME}

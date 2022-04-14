@@ -10,14 +10,27 @@ make
 cat {INPUT_NAME} | ./{EXEC_NAME} {INPUT_NAME}
 "###;
 
+static CMAKE_RUN: &str = r###"#!/bin/bash
+cd build
+cmake ..
+make
+cd ..
+cat {INPUT_NAME} | ./build/{EXEC_NAME} {INPUT_NAME}
+"###;
+
 fn run_script_content(config: &Config) -> String {
+  let script = config.run_options.script_path
+    .as_ref()
+    .and_then(|path| read_to_string(path).ok());
+
   match config.build_template {
-      Template::Make => config.run_options.script_path
-          .as_ref()
-          .and_then(|path| read_to_string(path).ok())
-          .or_else(|| Some(MAKE_RUN.to_string()))
-          .expect("No script template to build from"),
-      _ => "".to_string(),
+    Template::Make => script
+      .or_else(|| Some(MAKE_RUN.to_string()))
+      .expect("No script template to run make from"),
+    Template::CMake => script
+      .or_else(|| Some(CMAKE_RUN.to_string()))
+      .expect("No script template to run cmake from"),
+    _ => "".to_string(),
   }
 }
 
